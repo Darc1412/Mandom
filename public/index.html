@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANDOM</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">◆</span>
+    <span class="brand-text">MANDOM</span>
+    <span class="ver">v1.0</span>
+  </div>
+  <nav class="view-tabs" id="viewTabs">
+    <button class="view-tab active" data-view="collector">收集</button>
+    <button class="view-tab" data-view="torrent">磁力搜索</button>
+  </nav>
+  <div class="outdir">
+    <span class="label">输出目录</span>
+    <span id="outDirText" class="path" title="">—</span>
+    <button id="btnChangeOut" class="btn ghost small">更改</button>
+    <button id="btnOpenOut" class="btn ghost small">打开</button>
+  </div>
+  <div class="mode-switch" id="modeSwitch">
+    <button class="mode-btn" data-mode="fast" data-tip="快速模式：只查 TPB / Nyaa / Rutor 三个最快的源，不做别名扩展和相关度过滤，半秒出结果，适合随便看看">快速</button>
+    <button class="mode-btn active" data-mode="precise" data-tip="精准模式：五个源全查 + 维基别名扩展 + 相关度过滤 + 垃圾降权，慢几秒但结果更准">精准</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <button id="btnCookie" class="btn ghost small cookie-btn" data-tip="X 登录状态的 cookies。粘贴 Cookie-Editor 导出的 JSON 就能更新，点检测可以验证是否还有效">
+    <span id="cookieDot" class="dot"></span>Cookie
+  </button>
+</header>
+
+<main id="viewCollector">
+  <section class="panel tasks">
+    <div class="toolbar">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-filter="all">全部</button>
+        <button class="tab" data-filter="active">进行中</button>
+        <button class="tab" data-filter="done">完成</button>
+        <button class="tab" data-filter="failed">失败</button>
+      </div>
+      <div class="toolbar-right">
+        <button id="btnPause" class="btn ghost small">暂停</button>
+        <button id="btnClearDone" class="btn ghost small">清空已完成</button>
+      </div>
+    </div>
+    <div id="list" class="list">
+      <div class="empty" id="emptyHint">
+        <div class="empty-icon">▤</div>
+        <p>还没有任务</p>
+        <p class="dim">在右侧粘贴链接，一行一条</p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel input-panel">
+    <div class="input-head">
+      <span>粘贴链接</span>
+      <span class="dim" id="lineCount">0 行</span>
+    </div>
+    <textarea id="urls" spellcheck="false" placeholder="https://x.com/user/status/123&#10;https://www.bilibili.com/video/BVxxxx&#10;https://..."></textarea>
+    <div class="input-actions">
+      <label class="switch">
+        <input type="checkbox" id="autoStart" checked>
+        <span>自动开始</span>
+      </label>
+      <button id="btnSubmit" class="btn primary">收集</button>
+    </div>
+    <div id="feedback" class="feedback"></div>
+    <div id="pending" class="pending hidden"></div>
+    <div class="hint">
+      <p>支持 X/Twitter、B站、YouTube 等 yt-dlp 站点，以及 m3u8/mp4 直链。</p>
+      <p>X 的敏感内容需要登录：把 x.com 的 cookies.txt 放到 <code>cookies\twitter.txt</code>。</p>
+      <p id="toolHint" class="dim"></p>
+    </div>
+  </aside>
+</main>
+
+<section id="viewTorrent" class="hidden torrent-view">
+  <div class="torrent-panel">
+    <div class="torrent-search">
+      <input id="tq" type="text" spellcheck="false" placeholder="搜片名、番名、软件名…（中文会自动补英文 / 日文原名）">
+      <select id="tsort" class="select" data-tip="排序方式。相关度 = 标题和搜索词匹配得多好；做种 = 分享者数量；综合 = 做种 + 质量标记 + 垃圾降权的加权分">
+        <option value="relevance">相关度</option>
+        <option value="seeders">做种</option>
+        <option value="size">大小</option>
+        <option value="date">最新</option>
+        <option value="score">综合</option>
+      </select>
+      <button id="torder" class="btn ghost small" data-tip="切换升序 / 降序。比如「做种 + 降序」= 分享者最多的排最前">↓ 降序</button>
+      <label class="switch" data-tip="中文搜索时自动查维基百科，补上英文名和日文原名一起搜。比如「假面骑士」会同时搜 Kamen Rider 和 仮面ライダー">
+        <input type="checkbox" id="texpand" checked><span>别名扩展</span>
+      </label>
+      <button id="tbtn" class="btn primary">搜索</button>
+    </div>
+    <div class="source-row">
+      <span class="dim">源</span>
+      <div id="tsources" class="source-chips"></div>
+      <span class="dim source-hint">点选切换，只搜选中的站</span>
+    </div>
+    <div id="tstats" class="torrent-stats dim"></div>
+    <div id="tlist" class="torrent-list">
+      <div class="empty">
+        <div class="empty-icon">⌕</div>
+        <p>输入关键词开始搜索</p>
+        <p class="dim">多源聚合 · 自动去重 · 过滤推流垃圾</p>
+      </div>
+    </div>
+    <div id="tPager" class="torrent-pager hidden"></div>
+  </div>
+</section>
+
+<div id="torrentDetail" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span id="tdTitle">种子详情</span>
+      <button id="tdClose" class="btn ghost small">关闭</button>
+    </div>
+    <div id="tdMeta" class="preview-meta"></div>
+    <div id="tdFiles" class="file-list"></div>
+  </div>
+</div>
+
+<div id="preview" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span id="previewTitle">预览</span>
+      <button id="btnClosePreview" class="btn ghost small">关闭</button>
+    </div>
+    <video id="player" controls preload="metadata"></video>
+    <div id="previewFallback" class="preview-fallback hidden">
+      <p>浏览器不支持这种格式，用系统播放器打开。</p>
+      <button id="btnOpenFile" class="btn primary">用默认播放器打开</button>
+    </div>
+    <div id="previewMeta" class="preview-meta"></div>
+  </div>
+</div>
+
+<div id="cookieModal" class="modal hidden">
+  <div class="modal-box cookie-box">
+    <div class="modal-head">
+      <span>X / Twitter Cookie</span>
+      <button id="btnCloseCookie" class="btn ghost small">关闭</button>
+    </div>
+    <div class="cookie-body">
+      <div id="cookieStatusLine" class="cookie-status">未配置</div>
+      <textarea id="cookieInput" spellcheck="false" placeholder="把 Cookie-Editor 导出的 JSON 贴在这里&#10;或者 Netscape 格式的 cookies.txt 内容"></textarea>
+      <div class="cookie-actions">
+        <button id="btnSaveCookie" class="btn primary">添加 cookie</button>
+        <button id="btnTestCookie" class="btn">检测是否有效</button>
+        <button id="btnClearCookie" class="btn ghost">清空</button>
+      </div>
+      <div id="cookieMsg" class="feedback"></div>
+      <div class="hint">
+        <p>在 x.com 页面上用 Get cookies.txt LOCALLY 或 Cookie-Editor 导出，粘贴后点「添加 cookie」就会替换旧的。</p>
+        <p>敏感内容、需要登录的推文靠这个。换账号或改密码后重新导一次。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/app.js"></script>
+</body>
+</html>
